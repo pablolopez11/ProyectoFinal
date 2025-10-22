@@ -31,20 +31,39 @@
                                 <small class="text-muted">Código único del producto</small>
                             </div>
                             
-                            <!-- Código de Barras -->
+                            <!-- Código de Barras con API -->
                             <div class="col-md-6 mb-3">
                                 <label for="codigo_barras" class="form-label">
                                     Código de Barras
                                 </label>
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    id="codigo_barras" 
-                                    name="codigo_barras"
-                                    placeholder="Ej: 7501234567890"
-                                >
+                                <div class="input-group">
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="codigo_barras" 
+                                        name="codigo_barras"
+                                        placeholder="Ej: 7501234567890"
+                                        maxlength="14"
+                                    >
+                                    <button 
+                                        type="button" 
+                                        class="btn btn-info" 
+                                        id="btn-buscar-barcode"
+                                    >
+                                        <i class="bi bi-search"></i> Buscar
+                                    </button>
+                                </div>
+                                <small class="text-muted">Formatos: EAN-8, EAN-13, UPC-A</small>
                             </div>
                         </div>
+                        
+                        <!-- Indicador de carga -->
+                        <div id="loading-barcode" class="alert alert-info d-none mb-3" role="alert">
+                            <i class="bi bi-hourglass-split"></i> Buscando producto en base de datos externa...
+                        </div>
+
+                        <!-- Resultado de búsqueda -->
+                        <div id="resultado-barcode" class="alert d-none mb-3" role="alert"></div>
                         
                         <!-- Nombre del Producto -->
                         <div class="mb-3">
@@ -218,4 +237,129 @@
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Esperar a que el DOM esté completamente cargado
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initBarcodeSearch);
+    } else {
+        initBarcodeSearch();
+    }
+    
+    function initBarcodeSearch() {
+        // Obtener elementos
+        const btnBuscar = document.getElementById('btn-buscar-barcode');
+        const inputBarcode = document.getElementById('codigo_barras');
+        const loading = document.getElementById('loading-barcode');
+        const resultado = document.getElementById('resultado-barcode');
+        const nombreProducto = document.getElementById('nombre_producto');
+        const descripcion = document.getElementById('descripcion');
+        
+        // Verificar que todos los elementos existan
+        if (!btnBuscar || !inputBarcode || !loading || !resultado) {
+            console.error('No se encontraron todos los elementos necesarios');
+            return;
+        }
+        
+        console.log('Elementos encontrados correctamente');
+        
+        // Función principal de búsqueda
+        function buscarPorBarcode() {
+            console.log('buscarPorBarcode ejecutándose...');
+            
+            const codigoBarras = inputBarcode.value.trim();
+            
+            if (!codigoBarras) {
+                alert('Por favor ingresa un código de barras');
+                return;
+            }
+            
+            console.log('Código de barras:', codigoBarras);
+            
+            // Mostrar carga
+            loading.classList.remove('d-none');
+            resultado.classList.add('d-none');
+            btnBuscar.disabled = true;
+            
+            // Hacer petición
+            fetch('/productos/buscar-barcode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ codigo_barras: codigoBarras })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Respuesta recibida:', data);
+                
+                // Ocultar carga
+                loading.classList.add('d-none');
+                btnBuscar.disabled = false;
+                
+                if (data.success) {
+                    // Prellenar datos
+                    if (data.data.nombre_producto && nombreProducto) {
+                        nombreProducto.value = data.data.nombre_producto;
+                    }
+                    if (data.data.descripcion && descripcion) {
+                        descripcion.value = data.data.descripcion;
+                    }
+                    
+                    // Mensaje de éxito CON BOTÓN DE CERRAR (NO DESAPARECE AUTOMÁTICAMENTE)
+                    resultado.className = 'alert alert-success alert-dismissible fade show mb-3';
+                    resultado.innerHTML = `
+                        <i class="bi bi-check-circle"></i> <strong>${data.mensaje}</strong>
+                        ${data.data.marca ? `<br><small>Marca: ${data.data.marca}</small>` : ''}
+                        ${data.data.imagen_url ? `<br><img src="${data.data.imagen_url}" class="mt-2" style="max-width: 120px; border-radius: 5px;">` : ''}
+                        <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+                    `;
+                    resultado.classList.remove('d-none');
+                    
+                } else {
+                    // Mensaje de advertencia CON BOTÓN DE CERRAR (NO DESAPARECE AUTOMÁTICAMENTE)
+                    resultado.className = 'alert alert-warning alert-dismissible fade show mb-3';
+                    resultado.innerHTML = `
+                        <i class="bi bi-exclamation-triangle"></i> <strong>${data.mensaje || data.error}</strong>
+                        <br><small>Puedes ingresar los datos del producto manualmente.</small>
+                        <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+                    `;
+                    resultado.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                loading.classList.add('d-none');
+                btnBuscar.disabled = false;
+                
+                // Mensaje de error CON BOTÓN DE CERRAR (NO DESAPARECE AUTOMÁTICAMENTE)
+                resultado.className = 'alert alert-danger alert-dismissible fade show mb-3';
+                resultado.innerHTML = `
+                    <i class="bi bi-x-circle"></i> <strong>Error de conexión</strong>
+                    <br><small>${error.message}</small>
+                    <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+                `;
+                resultado.classList.remove('d-none');
+            });
+        }
+        
+        // Asignar eventos
+        btnBuscar.addEventListener('click', buscarPorBarcode);
+        
+        inputBarcode.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarPorBarcode();
+            }
+        });
+        
+        console.log('Búsqueda de código de barras inicializada correctamente');
+    }
+})();
+</script>
+
 {% endblock %}

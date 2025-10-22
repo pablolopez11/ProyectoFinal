@@ -6,6 +6,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from app.routes.auth import login_required, role_required
+from app.services.barcode_service import BarcodeService, ProductService
 from app.database import (
     execute_query, get_productos, 
     puede_crear_productos, puede_editar_productos, 
@@ -262,3 +263,44 @@ def ver(id):
         movimientos=movimientos,
         permisos=permisos  # NUEVO: Pasar permisos al template
     )
+    
+    
+@bp.route('/buscar-barcode', methods=['POST'])
+@login_required
+def buscar_barcode():
+    """
+    Buscar información de producto por código de barras
+    Endpoint AJAX para prellenar formulario
+    """
+    try:
+        codigo_barras = request.json.get('codigo_barras', '')
+        
+        # Validar formato
+        if not BarcodeService.validar_barcode(codigo_barras):
+            return {
+                'success': False,
+                'error': 'Código de barras inválido. Debe tener 8, 12, 13 o 14 dígitos.'
+            }
+        
+        # Buscar en API
+        resultado = BarcodeService.buscar_por_barcode(codigo_barras)
+        
+        if resultado.get('encontrado'):
+            # Prellenar datos
+            datos_producto = ProductService.prellenar_producto(resultado)
+            return {
+                'success': True,
+                'data': datos_producto,
+                'mensaje': f'Producto encontrado en {resultado.get("fuente")}'
+            }
+        else:
+            return {
+                'success': False,
+                'mensaje': 'Producto no encontrado. Puedes ingresar los datos manualmente.'
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Error al buscar: {str(e)}'
+        }

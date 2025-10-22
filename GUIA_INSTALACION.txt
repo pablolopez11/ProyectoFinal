@@ -58,6 +58,7 @@ INSTALACIÓN PROYECTO FINAL - SGI-GuateMart
        pip install Flask-Session
        pip install pyodbc
        pip install werkzeug
+       pip install requests
    
    3.4 Verificar instalación:
        pip list
