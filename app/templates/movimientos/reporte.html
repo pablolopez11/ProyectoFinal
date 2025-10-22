@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte de Movimientos - {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .table {
+            font-size: 11px;
+        }
+        body {
+            background: white !important;
+        }
+    }
+    
+    .reporte-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .filtros-aplicados {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .totales-box {
+        background-color: #e7f3ff;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    
+    <!-- Encabezado con botones -->
+    <div class="row mb-4 no-print">
+        <div class="col-md-6">
+            <h1 class="h3">
+                <i class="bi bi-file-earmark-bar-graph"></i> Reporte de Movimientos
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('movimientos.listar') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-3 no-print">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel"></i> Filtros de Búsqueda
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('movimientos.reporte') }}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha Desde</label>
+                        <input 
+                            type="date" 
+                            class="form-control" 
+                            name="fecha_desde" 
+                            value="{{ fecha_desde }}"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha Hasta</label>
+                        <input 
+                            type="date" 
+                            class="form-control" 
+                            name="fecha_hasta" 
+                            value="{{ fecha_hasta }}"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Producto</label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            name="producto" 
+                            placeholder="SKU o nombre..." 
+                            value="{{ producto }}"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo de Movimiento</label>
+                        <select class="form-select" name="tipo">
+                            <option value="">Todos los tipos</option>
+                            {% for tipo in tipos_movimiento %}
+                            <option value="{{ tipo.id_tipo_movimiento }}"
+                                    {{ 'selected' if tipo_seleccionado|string == tipo.id_tipo_movimiento|string else '' }}>
+                                {{ tipo.nombre_tipo }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Generar Reporte
+                        </button>
+                        {% if fecha_desde or fecha_hasta or producto or tipo_seleccionado %}
+                        <a href="{{ url_for('movimientos.reporte') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Limpiar Filtros
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Resultados del Reporte -->
+    <div class="card">
+        <div class="card-body">
+            
+            <!-- Encabezado del reporte (visible al imprimir) -->
+            <div class="reporte-header d-none d-print-block">
+                <h2>SGI-GuateMart</h2>
+                <h4>Reporte de Movimientos de Inventario</h4>
+                <p class="text-muted mb-0">Generado el: {{ fecha_reporte }}</p>
+            </div>
+            
+            <!-- Filtros aplicados -->
+            {% if fecha_desde or fecha_hasta or producto or tipo_seleccionado %}
+            <div class="filtros-aplicados">
+                <h6 class="mb-2">
+                    <i class="bi bi-filter-circle"></i> Filtros Aplicados:
+                </h6>
+                <div class="row">
+                    {% if fecha_desde %}
+                    <div class="col-md-3">
+                        <strong>Desde:</strong> {{ fecha_desde }}
+                    </div>
+                    {% endif %}
+                    {% if fecha_hasta %}
+                    <div class="col-md-3">
+                        <strong>Hasta:</strong> {{ fecha_hasta }}
+                    </div>
+                    {% endif %}
+                    {% if producto %}
+                    <div class="col-md-3">
+                        <strong>Producto:</strong> {{ producto }}
+                    </div>
+                    {% endif %}
+                    {% if tipo_seleccionado %}
+                    <div class="col-md-3">
+                        <strong>Tipo:</strong> 
+                        {% for tipo in tipos_movimiento %}
+                            {% if tipo.id_tipo_movimiento|string == tipo_seleccionado|string %}
+                                {{ tipo.nombre_tipo }}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tabla de movimientos -->
+            {% if movimientos %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="12%">Fecha</th>
+                            <th width="15%">SKU</th>
+                            <th width="35%">Producto</th>
+                            <th width="20%">Tipo de Movimiento</th>
+                            <th width="10%" class="text-center">Cantidad</th>
+                            <th width="8%" class="text-center no-print">Doc.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in movimientos %}
+                        <tr>
+                            <td>
+                                {{ mov.fecha_movimiento.strftime('%d/%m/%Y') }}<br>
+                                <small class="text-muted">{{ mov.fecha_movimiento.strftime('%H:%M') }}</small>
+                            </td>
+                            <td><code>{{ mov.sku }}</code></td>
+                            <td>{{ mov.nombre_producto }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if 'Entrada' in mov.nombre_tipo or 'Positivo' in mov.nombre_tipo %}
+                                        bg-success
+                                    {% elif 'Salida' in mov.nombre_tipo or 'Negativo' in mov.nombre_tipo %}
+                                        bg-danger
+                                    {% else %}
+                                        bg-secondary
+                                    {% endif %}
+                                ">
+                                    {{ mov.nombre_tipo }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <strong class="
+                                    {% if 'Entrada' in mov.nombre_tipo or 'Positivo' in mov.nombre_tipo %}
+                                        text-success
+                                    {% elif 'Salida' in mov.nombre_tipo or 'Negativo' in mov.nombre_tipo %}
+                                        text-danger
+                                    {% endif %}
+                                ">
+                                    {{ mov.cantidad }}
+                                </strong>
+                            </td>
+                            <td class="text-center no-print">
+                                <small>{{ mov.numero_documento or '-' }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Resumen de totales -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="totales-box">
+                        <h6 class="mb-3">
+                            <i class="bi bi-calculator"></i> Resumen de Movimientos
+                        </h6>
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                {% for tipo, cantidad in totales.items() %}
+                                <tr>
+                                    <td><strong>{{ tipo }}:</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge 
+                                            {% if 'Entrada' in tipo or 'Positivo' in tipo %}
+                                                bg-success
+                                            {% elif 'Salida' in tipo or 'Negativo' in tipo %}
+                                                bg-danger
+                                            {% else %}
+                                                bg-secondary
+                                            {% endif %}
+                                        ">
+                                            {{ cantidad }} unidades
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-active">
+                                    <td><strong>Total de registros:</strong></td>
+                                    <td class="text-end">
+                                        <strong>{{ total_movimientos }}</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3">
+                        {% if fecha_desde or fecha_hasta or producto or tipo_seleccionado %}
+                            No se encontraron movimientos con los filtros aplicados
+                        {% else %}
+                            Aplique filtros para generar el reporte
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+            
+        </div>
+    </div>
+    
+</div>
+{% endblock %}

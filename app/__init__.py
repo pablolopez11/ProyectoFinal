@@ -24,12 +24,13 @@ def create_app(config_name='default'):
     sess.init_app(app)
     
     # Registrar blueprints (rutas)
-    from app.routes import auth, dashboard, productos, movimientos
+    from app.routes import auth, dashboard, productos, movimientos, usuarios
     
     app.register_blueprint(auth.bp)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(productos.bp)
     app.register_blueprint(movimientos.bp)
+    app.register_blueprint(usuarios.bp)
     
     # Ruta raíz redirige al dashboard
     @app.route('/')

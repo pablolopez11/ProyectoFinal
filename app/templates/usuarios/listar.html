@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3">
+                <i class="bi bi-people"></i> Gestión de Usuarios
+            </h1>
+            <p class="text-muted">Administración completa de usuarios del sistema</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('usuarios.crear') }}" class="btn btn-primary">
+                <i class="bi bi-person-plus"></i> Nuevo Usuario
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="q" class="form-control" 
+                           placeholder="Usuario, nombre o email..." 
+                           value="{{ filtro }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Rol</label>
+                    <select name="rol" class="form-select">
+                        <option value="">Todos los roles</option>
+                        {% for rol in roles %}
+                        <option value="{{ rol.id_rol }}" {% if rol_filtro == rol.id_rol|string %}selected{% endif %}>
+                            {{ rol.nombre_rol }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activos</option>
+                        <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Tabla de Usuarios -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-list"></i> Lista de Usuarios
+                <span class="badge bg-primary">{{ total }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if usuarios %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Nombre Completo</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Último Acceso</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <td>{{ usuario.id_usuario }}</td>
+                            <td>
+                                <code>{{ usuario.username }}</code>
+                                {% if usuario.id_usuario == session.user_id %}
+                                <span class="badge bg-info">TÚ</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ usuario.nombre_completo }}</td>
+                            <td><small>{{ usuario.email }}</small></td>
+                            <td>
+                                {% if usuario.nombre_rol == 'Administrador' %}
+                                <span class="badge bg-danger">{{ usuario.nombre_rol }}</span>
+                                {% elif usuario.nombre_rol == 'Operador de Bodega' %}
+                                <span class="badge bg-primary">{{ usuario.nombre_rol }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ usuario.nombre_rol }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if usuario.activo == 1 %}
+                                <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if usuario.ultimo_acceso %}
+                                <small>{{ usuario.ultimo_acceso.strftime('%d/%m/%Y %H:%M') }}</small>
+                                {% else %}
+                                <small class="text-muted">Nunca</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('usuarios.ver', id=usuario.id_usuario) }}" 
+                                       class="btn btn-sm btn-info" title="Ver detalles">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('usuarios.editar', id=usuario.id_usuario) }}" 
+                                       class="btn btn-sm btn-warning" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('usuarios.cambiar_password', id=usuario.id_usuario) }}" 
+                                       class="btn btn-sm btn-secondary" title="Cambiar contraseña">
+                                        <i class="bi bi-key"></i>
+                                    </a>
+                                    {% if usuario.id_usuario != session.user_id %}
+                                    <form method="POST" 
+                                          action="{{ url_for('usuarios.toggle_estado', id=usuario.id_usuario) }}" 
+                                          style="display:inline;">
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-{% if usuario.activo == 1 %}danger{% else %}success{% endif %}"
+                                                title="{% if usuario.activo == 1 %}Desactivar{% else %}Activar{% endif %}"
+                                                onclick="return confirm('¿Cambiar estado del usuario?');">
+                                            <i class="bi bi-{% if usuario.activo == 1 %}x-circle{% else %}check-circle{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <nav aria-label="Navegación de páginas">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page - 1 }}{% if filtro %}&q={{ filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}">
+                            Anterior
+                        </a>
+                    </li>
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page or (p >= page - 2 and p <= page + 2) or p == 1 or p == total_pages %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            <a class="page-link" href="?page={{ p }}{% if filtro %}&q={{ filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}">
+                                {{ p }}
+                            </a>
+                        </li>
+                        {% elif p == page - 3 or p == page + 3 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                        <a class="page-link" href="?page={{ page + 1 }}{% if filtro %}&q={{ filtro }}{% endif %}{% if rol_filtro %}&rol={{ rol_filtro }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}">
+                            Siguiente
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-people display-1 text-muted"></i>
+                <p class="text-muted mt-3">No se encontraron usuarios</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

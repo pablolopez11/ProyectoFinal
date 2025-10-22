@@ -1,0 +1,155 @@
+========================================================
+INSTALACIÓN PROYECTO FINAL - SGI-GuateMart
+========================================================
+
+1. REQUISITOS PREVIOS
+========================================================
+   - SQL Server 2019 o superior (o SQL Server Express)
+   - Visual Studio Code
+   - Python 3.8.0 o superior
+   - Git instalado (para clonar repositorio)
+   - Cuenta de GitHub (para acceder al repositorio)
+
+
+2. INSTALACIÓN DE LA BASE DE DATOS
+========================================================
+   2.1 Conectarse a SQL Server Management Studio (SSMS)
+       - Usar Windows Authentication
+   
+   2.2 Ejecutar scripts en orden:
+       - Ubicación: ProyectoFinal/bd/
+       
+       Orden de ejecución:
+       1. CreacionBD.sql          (Crea la base de datos y tablas)
+       2. InsertarProveedores.sql (Inserta proveedores iniciales)
+       3. roles.sql               (Crea roles y usuarios de prueba)
+   
+   2.3 Verificar creación:
+       - Base de datos: SGI_GuateMart
+       - Tablas creadas correctamente
+       - Datos insertados
+
+
+3. INSTALACIÓN DEL PROYECTO
+========================================================
+   3.1 Clonar el repositorio:
+       - Abrir terminal (cmd/PowerShell/Git Bash)
+       - Navegar a la carpeta deseada:
+         cd C:\ruta\donde\quieres\el\proyecto
+       
+       - Clonar usando HTTPS:
+         git clone https://github.com/tu-usuario/tu-repositorio.git
+       
+       - O usando SSH:
+         git clone git@github.com:tu-usuario/tu-repositorio.git
+       
+       - Entrar al proyecto:
+         cd tu-repositorio
+   
+   3.2 Crear entorno virtual (RECOMENDADO):
+       - python -m venv venv
+       - Activar entorno:
+         • Windows (cmd):      venv\Scripts\activate
+         • Windows (PowerShell): venv\Scripts\Activate.ps1
+         • Linux/Mac:          source venv/bin/activate
+   
+   3.3 Instalar dependencias:
+       pip install flask
+       pip install Flask-Session
+       pip install pyodbc
+       pip install werkzeug
+   
+   3.4 Verificar instalación:
+       pip list
+   
+   3.5 Configurar conexión a base de datos:
+       - Abrir archivo: app/config.py
+       - Modificar la cadena de conexión según tu instalación:
+       
+       DB_CONNECTION_STRING = (
+           'DRIVER={ODBC Driver 17 for SQL Server};'
+           'SERVER=NOMBRE_DE_TU_SERVIDOR;'  # Ej: localhost\SQLEXPRESS
+           'DATABASE=SGI_GuateMart;'
+           'Trusted_Connection=yes;'
+       )
+   
+   Nota: Si no sabes tu nombre de servidor, abre SSMS y verás 
+         el nombre en la ventana de conexión.
+
+
+4. EJECUCIÓN DEL PROYECTO
+========================================================
+   4.1 Desde la carpeta raíz del proyecto ejecutar:
+       python run.py
+   
+   4.2 Abrir navegador y acceder a:
+       http://127.0.0.1:5000
+   
+   4.3 Para detener el servidor:
+       Presionar Ctrl + C en la terminal
+
+
+5. CREDENCIALES DE ACCESO
+========================================================
+   El sistema maneja 3 tipos de usuarios con diferentes permisos:
+   
+   Usuario Administrador:
+   - Usuario: admin
+   - Contraseña: admin123
+   - Permisos: Acceso total al sistema
+   
+   Usuario Operador de Bodega:
+   - Usuario: operador
+   - Contraseña: bodega123
+   - Permisos: Gestión de inventario y movimientos
+   
+   Usuario de Consulta:
+   - Usuario: consulta
+   - Contraseña: consulta123
+   - Permisos: Solo lectura del sistema
+
+
+6. SOLUCIÓN DE PROBLEMAS COMUNES
+========================================================
+   Problema: Error al conectar a la base de datos
+   Solución: 
+   - Verificar que SQL Server esté ejecutándose
+   - Revisar el nombre del servidor en config.py
+   - Instalar ODBC Driver 17 for SQL Server si no está
+
+   Problema: ModuleNotFoundError
+   Solución: 
+   - Activar el entorno virtual
+   - Reinstalar dependencias: pip install -r requirements.txt
+
+   Problema: Puerto 5000 en uso
+   Solución:
+   - Cambiar puerto en run.py: app.run(port=5001)
+
+
+7. ESTRUCTURA DEL PROYECTO
+========================================================
+   ProyectoFinal/
+   ├── app/
+   │   ├── routes/          (Rutas de la aplicación)
+   │   ├── templates/       (Plantillas HTML)
+   │   ├── static/          (CSS, JS, imágenes)
+   │   ├── database.py      (Conexión a BD)
+   │   └── config.py        (Configuración)
+   ├── bd/                  (Scripts SQL)
+   └── run.py               (Archivo principal)
+
+
+8. NOTAS ADICIONALES
+========================================================
+   - El proyecto usa Flask como framework web
+   - Base de datos: SQL Server
+   - Sistema de sesiones para autenticación
+   - Sistema de roles para control de permisos
+   - Incluye módulo de reportes de movimientos
+
+
+========================================================
+¿NECESITAS AYUDA?
+Contacta a [tu nombre/email]
+========================================================

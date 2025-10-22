@@ -225,3 +225,81 @@ def resolver_alerta(id):
         flash('Error al resolver alerta', 'error')
     
     return redirect(url_for('movimientos.alertas'))
+
+from datetime import datetime  
+
+@bp.route('/reporte')
+@login_required
+def reporte():
+    """Generar reporte de movimientos con filtros"""
+    
+    fecha_desde = request.args.get('fecha_desde', '')
+    fecha_hasta = request.args.get('fecha_hasta', '')
+    producto = request.args.get('producto', '')
+    tipo = request.args.get('tipo', '')
+    
+    try:
+        query = """
+            SELECT 
+                m.fecha_movimiento,
+                p.sku,
+                p.nombre_producto,
+                tm.nombre_tipo,
+                m.cantidad,
+                m.numero_documento
+            FROM Movimientos m
+            INNER JOIN Productos p ON m.id_producto = p.id_producto
+            INNER JOIN TiposMovimiento tm ON m.id_tipo_movimiento = tm.id_tipo_movimiento
+            WHERE 1=1
+        """
+        
+        params = []
+        
+        if fecha_desde:
+            query += " AND CAST(m.fecha_movimiento AS DATE) >= ?"
+            params.append(fecha_desde)
+        
+        if fecha_hasta:
+            query += " AND CAST(m.fecha_movimiento AS DATE) <= ?"
+            params.append(fecha_hasta)
+        
+        if producto:
+            query += " AND (p.sku LIKE ? OR p.nombre_producto LIKE ?)"
+            params.extend([f'%{producto}%', f'%{producto}%'])
+        
+        if tipo:
+            query += " AND m.id_tipo_movimiento = ?"
+            params.append(tipo)
+        
+        query += " ORDER BY m.fecha_movimiento DESC"
+        
+        movimientos = execute_query(query, tuple(params) if params else None)
+        tipos_movimiento = execute_query("SELECT * FROM TiposMovimiento WHERE activo = 1 ORDER BY nombre_tipo")
+        
+        totales = {}
+        for mov in movimientos:
+            tipo_nombre = mov['nombre_tipo']
+            if tipo_nombre not in totales:
+                totales[tipo_nombre] = 0
+            totales[tipo_nombre] += mov['cantidad']
+        
+        # Obtener fecha y hora actual
+        fecha_reporte = datetime.now().strftime('%d/%m/%Y %H:%M')
+        
+        return render_template(
+            'movimientos/reporte.html',
+            movimientos=movimientos,
+            tipos_movimiento=tipos_movimiento,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            producto=producto,
+            tipo_seleccionado=tipo,
+            totales=totales,
+            total_movimientos=len(movimientos),
+            fecha_reporte=fecha_reporte
+        )
+        
+    except Exception as e:
+        print(f"Error al generar reporte: {e}")
+        flash('Error al generar el reporte', 'error')
+        return render_template('movimientos/reporte.html', movimientos=[], error=str(e))

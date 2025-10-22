@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Usuario - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Encabezado -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="bi bi-person-plus"></i> Crear Nuevo Usuario
+                </h1>
+                <a href="{{ url_for('usuarios.listar') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+            
+            <!-- Mensajes Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Formulario -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('usuarios.crear') }}">
+                        <!-- Información de Login -->
+                        <h5 class="mb-3">
+                            <i class="bi bi-shield-lock"></i> Información de Acceso
+                        </h5>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">
+                                    Nombre de Usuario <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       required minlength="3" maxlength="50"
+                                       placeholder="Ej: jperez">
+                                <small class="form-text text-muted">Mínimo 3 caracteres, sin espacios</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="id_rol" class="form-label">
+                                    Rol <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="id_rol" name="id_rol" required>
+                                    <option value="">Seleccionar rol...</option>
+                                    {% for rol in roles %}
+                                    <option value="{{ rol.id_rol }}">
+                                        {{ rol.nombre_rol }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="password" class="form-label">
+                                    Contraseña <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       required minlength="6" maxlength="100">
+                                <small class="form-text text-muted">Mínimo 6 caracteres</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="password_confirm" class="form-label">
+                                    Confirmar Contraseña <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" id="password_confirm" name="password_confirm" 
+                                       required minlength="6" maxlength="100">
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Información Personal -->
+                        <h5 class="mb-3">
+                            <i class="bi bi-person"></i> Información Personal
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <label for="nombre_completo" class="form-label">
+                                Nombre Completo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" 
+                                   required maxlength="100"
+                                   placeholder="Ej: Juan Pérez García">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                Correo Electrónico <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   required maxlength="100"
+                                   placeholder="Ej: jperez@guatemart.com">
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('usuarios.listar') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Crear Usuario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Información Adicional -->
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                <strong>Nota:</strong> El usuario podrá iniciar sesión inmediatamente después de ser creado.
+                Se recomienda que el usuario cambie su contraseña en el primer acceso.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Validar que las contraseñas coincidan
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const password_confirm = document.getElementById('password_confirm').value;
+    
+    if (password !== password_confirm) {
+        e.preventDefault();
+        alert('Las contraseñas no coinciden');
+        document.getElementById('password_confirm').focus();
+    }
+});
+</script>
+{% endblock %}

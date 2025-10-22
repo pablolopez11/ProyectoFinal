@@ -52,6 +52,14 @@
                             <i class="bi bi-exclamation-triangle"></i> Alertas
                         </a>
                     </li>
+                    {% if session.rol == 'Administrador' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'usuarios.listar' %}active{% endif %}" 
+                            href="{{ url_for('usuarios.listar') }}">
+                            <i class="bi bi-people"></i> Usuarios
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav">

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Ver Usuario - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <!-- Encabezado -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="bi bi-person-circle"></i> Detalles del Usuario
+                </h1>
+                <div>
+                    <a href="{{ url_for('usuarios.editar', id=usuario.id_usuario) }}" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Editar
+                    </a>
+                    <a href="{{ url_for('usuarios.listar') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Información Principal -->
+            <div class="row g-3">
+                <!-- Tarjeta de Perfil -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="bi bi-person-circle display-1 text-primary"></i>
+                            </div>
+                            <h4>{{ usuario.nombre_completo }}</h4>
+                            <p class="text-muted mb-2">
+                                <code>@{{ usuario.username }}</code>
+                            </p>
+                            <p class="mb-3">
+                                {% if usuario.nombre_rol == 'Administrador' %}
+                                <span class="badge bg-danger">{{ usuario.nombre_rol }}</span>
+                                {% elif usuario.nombre_rol == 'Operador de Bodega' %}
+                                <span class="badge bg-primary">{{ usuario.nombre_rol }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ usuario.nombre_rol }}</span>
+                                {% endif %}
+                            </p>
+                            <p>
+                                {% if usuario.activo == 1 %}
+                                <span class="badge bg-success">Usuario Activo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Usuario Inactivo</span>
+                                {% endif %}
+                            </p>
+                            <hr>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('usuarios.cambiar_password', id=usuario.id_usuario) }}" 
+                                   class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-key"></i> Cambiar Contraseña
+                                </a>
+                                {% if usuario.id_usuario != session.user_id %}
+                                <form method="POST" 
+                                      action="{{ url_for('usuarios.toggle_estado', id=usuario.id_usuario) }}">
+                                    <button type="submit" 
+                                            class="btn btn-outline-{% if usuario.activo == 1 %}danger{% else %}success{% endif %} btn-sm w-100"
+                                            onclick="return confirm('¿Cambiar estado del usuario?');">
+                                        <i class="bi bi-{% if usuario.activo == 1 %}x-circle{% else %}check-circle{% endif %}"></i>
+                                        {% if usuario.activo == 1 %}Desactivar{% else %}Activar{% endif %} Usuario
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información Detallada -->
+                <div class="col-md-8">
+                    <!-- Información de Contacto -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-envelope"></i> Información de Contacto
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2">
+                                        <strong>Correo Electrónico:</strong><br>
+                                        <a href="mailto:{{ usuario.email }}">{{ usuario.email }}</a>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2">
+                                        <strong>Usuario del Sistema:</strong><br>
+                                        <code>{{ usuario.username }}</code>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información del Rol -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-shield-lock"></i> Rol y Permisos
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                <strong>Rol Asignado:</strong><br>
+                                {% if usuario.nombre_rol == 'Administrador' %}
+                                <span class="badge bg-danger">{{ usuario.nombre_rol }}</span>
+                                {% elif usuario.nombre_rol == 'Operador de Bodega' %}
+                                <span class="badge bg-primary">{{ usuario.nombre_rol }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ usuario.nombre_rol }}</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-0">
+                                <strong>Descripción:</strong><br>
+                                <small class="text-muted">{{ usuario.descripcion_rol }}</small>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Estadísticas de Actividad -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-graph-up"></i> Actividad en el Sistema
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <h2 class="text-primary">{{ estadisticas.total_movimientos }}</h2>
+                                    <p class="text-muted mb-0">Movimientos Registrados</p>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <h2 class="text-success">
+                                        {% if usuario.ultimo_acceso %}
+                                        <i class="bi bi-check-circle"></i>
+                                        {% else %}
+                                        <i class="bi bi-x-circle text-muted"></i>
+                                        {% endif %}
+                                    </h2>
+                                    <p class="text-muted mb-0">
+                                        {% if usuario.ultimo_acceso %}Ha iniciado sesión{% else %}Nunca ha ingresado{% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <h2 class="{% if usuario.activo == 1 %}text-success{% else %}text-danger{% endif %}">
+                                        <i class="bi bi-{% if usuario.activo == 1 %}check-circle{% else %}x-circle{% endif %}"></i>
+                                    </h2>
+                                    <p class="text-muted mb-0">
+                                        {% if usuario.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fechas Importantes -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-calendar"></i> Fechas Importantes
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-2">
+                                        <strong>Fecha de Creación:</strong><br>
+                                        <small>
+                                            {% if usuario.fecha_creacion %}
+                                            {{ usuario.fecha_creacion.strftime('%d/%m/%Y') }}<br>
+                                            <span class="text-muted">{{ usuario.fecha_creacion.strftime('%H:%M:%S') }}</span>
+                                            {% else %}
+                                            <span class="text-muted">No disponible</span>
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-2">
+                                        <strong>Último Acceso:</strong><br>
+                                        <small>
+                                            {% if usuario.ultimo_acceso %}
+                                            {{ usuario.ultimo_acceso.strftime('%d/%m/%Y') }}<br>
+                                            <span class="text-muted">{{ usuario.ultimo_acceso.strftime('%H:%M:%S') }}</span>
+                                            {% else %}
+                                            <span class="text-muted">Nunca ha ingresado</span>
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-2">
+                                        <strong>Última Modificación:</strong><br>
+                                        <small>
+                                            {% if usuario.fecha_modificacion %}
+                                            {{ usuario.fecha_modificacion.strftime('%d/%m/%Y') }}<br>
+                                            <span class="text-muted">{{ usuario.fecha_modificacion.strftime('%H:%M:%S') }}</span>
+                                            {% else %}
+                                            <span class="text-muted">No modificado</span>
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            {% if estadisticas.ultimo_movimiento %}
+                            <hr>
+                            <p class="mb-0">
+                                <strong>Último Movimiento Registrado:</strong><br>
+                                <small>
+                                    {{ estadisticas.ultimo_movimiento.strftime('%d/%m/%Y %H:%M:%S') }}
+                                </small>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
