@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Alertas de Stock - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3">
+                <i class="bi bi-exclamation-triangle text-warning"></i> Alertas de Stock
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            {% if alertas %}
+            <span class="badge bg-danger fs-6">
+                {{ alertas|length }} alerta(s) pendiente(s)
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if alertas %}
+    <div class="row">
+        {% for alerta in alertas %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card 
+                {% if alerta.tipo_alerta == 'STOCK_CRITICO' %}
+                    border-danger
+                {% else %}
+                    border-warning
+                {% endif %}
+            ">
+                <div class="card-header 
+                    {% if alerta.tipo_alerta == 'STOCK_CRITICO' %}
+                        bg-danger text-white
+                    {% else %}
+                        bg-warning
+                    {% endif %}
+                ">
+                    <h6 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        {% if alerta.tipo_alerta == 'STOCK_CRITICO' %}
+                            CRÍTICO
+                        {% else %}
+                            STOCK BAJO
+                        {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Producto -->
+                    <h5 class="card-title">{{ alerta.nombre_producto }}</h5>
+                    <p class="text-muted mb-2">
+                        <code>{{ alerta.sku }}</code>
+                        {% if alerta.nombre_categoria %}
+                            | <span class="badge bg-secondary">{{ alerta.nombre_categoria }}</span>
+                        {% endif %}
+                    </p>
+                    
+                    <!-- Stock Info -->
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Stock Actual:</small><br>
+                            <strong class="
+                                {% if alerta.stock_actual == 0 %}
+                                    text-danger
+                                {% else %}
+                                    text-warning
+                                {% endif %}
+                                fs-4
+                            ">
+                                {{ alerta.stock_actual }}
+                            </strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Stock Mínimo:</small><br>
+                            <strong class="fs-4">{{ alerta.stock_minimo }}</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensaje -->
+                    <div class="alert 
+                        {% if alerta.tipo_alerta == 'STOCK_CRITICO' %}
+                            alert-danger
+                        {% else %}
+                            alert-warning
+                        {% endif %}
+                        mb-3 small
+                    ">
+                        {{ alerta.mensaje }}
+                    </div>
+                    
+                    <!-- Proveedor -->
+                    {% if alerta.nombre_proveedor %}
+                    <p class="mb-2 small">
+                        <i class="bi bi-truck"></i> 
+                        <strong>Proveedor:</strong> {{ alerta.nombre_proveedor }}
+                    </p>
+                    {% endif %}
+                    
+                    <!-- Fecha de generación -->
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-clock"></i>
+                        {{ alerta.fecha_generacion.strftime('%d/%m/%Y %H:%M') }}
+                    </p>
+                    
+                    <!-- Acciones -->
+                    <div class="btn-group w-100">
+                        <a href="{{ url_for('productos.ver', id=alerta.id_producto) }}" 
+                           class="btn btn-info btn-sm">
+                            <i class="bi bi-eye"></i> Ver Producto
+                        </a>
+                        <a href="{{ url_for('movimientos.registrar') }}?producto={{ alerta.id_producto }}" 
+                           class="btn btn-success btn-sm">
+                            <i class="bi bi-plus"></i> Reponer
+                        </a>
+                        {% if g.user.rol in ['Administrador', 'Gerente'] %}
+                        <form method="POST" 
+                              action="{{ url_for('movimientos.resolver_alerta', id=alerta.id_alerta) }}" 
+                              style="display: inline;">
+                            <button type="submit" 
+                                    class="btn btn-secondary btn-sm"
+                                    onclick="return confirm('¿Marcar esta alerta como resuelta?')">
+                                <i class="bi bi-check"></i> Resolver
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% else %}
+    <!-- Sin Alertas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-check-circle display-1 text-success"></i>
+                    <h3 class="mt-3">¡Todo en orden!</h3>
+                    <p class="text-muted">
+                        No hay productos con stock bajo en este momento.
+                    </p>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                        <i class="bi bi-speedometer2"></i> Volver al Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Resumen -->
+    {% if alertas %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle"></i> Resumen de Alertas</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Total de Alertas:</strong> {{ alertas|length }}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Críticas:</strong> 
+                            <span class="text-danger">
+                                {{ alertas|selectattr('tipo_alerta', 'equalto', 'STOCK_CRITICO')|list|length }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Stock Bajo:</strong> 
+                            <span class="text-warning">
+                                {{ alertas|selectattr('tipo_alerta', 'equalto', 'STOCK_MINIMO')|list|length }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

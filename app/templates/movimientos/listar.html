@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Movimientos - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3">
+                <i class="bi bi-arrow-left-right"></i> Movimientos de Inventario
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            {% if g.user.rol in ['Administrador', 'Gerente', 'Almacenista'] %}
+            <a href="{{ url_for('movimientos.registrar') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Registrar Movimiento
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('movimientos.listar') }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            name="q" 
+                            placeholder="Buscar por SKU o producto..." 
+                            value="{{ filtro }}"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="tipo">
+                            <option value="">Todos los tipos</option>
+                            {% for tipo in tipos_movimiento %}
+                            <option value="{{ tipo.id_tipo_movimiento }}"
+                                    {{ 'selected' if tipo_seleccionado|string == tipo.id_tipo_movimiento|string else '' }}>
+                                {{ tipo.nombre_tipo }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                        {% if filtro or tipo_seleccionado %}
+                        <a href="{{ url_for('movimientos.listar') }}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Limpiar
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <span class="text-muted">Total: {{ total }}</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabla de Movimientos -->
+    <div class="card">
+        <div class="card-body">
+            {% if movimientos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>SKU</th>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Stock</th>
+                            <th>Usuario</th>
+                            <th>Documento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in movimientos %}
+                        <tr>
+                            <td>
+                                <small>{{ mov.fecha_movimiento.strftime('%d/%m/%Y') }}</small><br>
+                                <small class="text-muted">{{ mov.fecha_movimiento.strftime('%H:%M') }}</small>
+                            </td>
+                            <td><code>{{ mov.sku }}</code></td>
+                            <td>{{ mov.nombre_producto[:40] }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if 'Entrada' in mov.nombre_tipo or 'Positivo' in mov.nombre_tipo %}
+                                        bg-success
+                                    {% elif 'Salida' in mov.nombre_tipo or 'Negativo' in mov.nombre_tipo %}
+                                        bg-danger
+                                    {% else %}
+                                        bg-secondary
+                                    {% endif %}
+                                ">
+                                    {{ mov.nombre_tipo }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong class="
+                                    {% if 'Entrada' in mov.nombre_tipo or 'Positivo' in mov.nombre_tipo %}
+                                        text-success
+                                    {% elif 'Salida' in mov.nombre_tipo or 'Negativo' in mov.nombre_tipo %}
+                                        text-danger
+                                    {% endif %}
+                                ">
+                                    {{ mov.cantidad }}
+                                </strong>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ mov.stock_anterior }} 
+                                    <i class="bi bi-arrow-right"></i> 
+                                    {{ mov.stock_nuevo }}
+                                </small>
+                            </td>
+                            <td><small>{{ mov.usuario }}</small></td>
+                            <td><small>{{ mov.numero_documento or '-' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {{ 'disabled' if page == 1 else '' }}">
+                        <a class="page-link" href="{{ url_for('movimientos.listar', page=page-1, q=filtro, tipo=tipo_seleccionado) }}">
+                            Anterior
+                        </a>
+                    </li>
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ p }}</span>
+                            </li>
+                        {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('movimientos.listar', page=p, q=filtro, tipo=tipo_seleccionado) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+                        {% elif p == page - 3 or p == page + 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {{ 'disabled' if page == total_pages else '' }}">
+                        <a class="page-link" href="{{ url_for('movimientos.listar', page=page+1, q=filtro, tipo=tipo_seleccionado) }}">
+                            Siguiente
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3">
+                        {% if filtro or tipo_seleccionado %}
+                            No se encontraron movimientos con los filtros aplicados
+                        {% else %}
+                            No hay movimientos registrados
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

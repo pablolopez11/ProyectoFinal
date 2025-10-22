@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Movimiento - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-down-up"></i> Registrar Movimiento de Inventario
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('movimientos.registrar') }}" id="formMovimiento">
+                        <!-- Producto -->
+                        <div class="mb-3">
+                            <label for="id_producto" class="form-label">
+                                Producto <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="id_producto" name="id_producto" required>
+                                <option value="">Seleccione un producto</option>
+                                {% for prod in productos %}
+                                <option value="{{ prod.id_producto }}" 
+                                        data-stock="{{ prod.stock_actual }}"
+                                        {{ 'selected' if request.args.get('producto')|int == prod.id_producto else '' }}>
+                                    {{ prod.sku }} - {{ prod.nombre_producto }} 
+                                    (Stock: {{ prod.stock_actual }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Stock Actual (info) -->
+                        <div class="alert alert-info" id="stockInfo" style="display: none;">
+                            <strong>Stock Actual:</strong> <span id="stockActual">0</span> unidades
+                        </div>
+                        
+                        <!-- Tipo de Movimiento -->
+                        <div class="mb-3">
+                            <label for="id_tipo_movimiento" class="form-label">
+                                Tipo de Movimiento <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="id_tipo_movimiento" name="id_tipo_movimiento" required>
+                                <option value="">Seleccione un tipo</option>
+                                {% for tipo in tipos_movimiento %}
+                                <option value="{{ tipo.id_tipo_movimiento }}" data-afecta="{{ tipo.afecta_stock }}">
+                                    {{ tipo.nombre_tipo }}
+                                    {% if tipo.afecta_stock == 'SUMA' %}
+                                        <i class="bi bi-arrow-up-circle"></i>
+                                    {% elif tipo.afecta_stock == 'RESTA' %}
+                                        <i class="bi bi-arrow-down-circle"></i>
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Entrada/Positivo suma stock, Salida/Negativo resta stock
+                            </small>
+                        </div>
+                        
+                        <!-- Cantidad -->
+                        <div class="mb-3">
+                            <label for="cantidad" class="form-label">
+                                Cantidad <span class="text-danger">*</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                class="form-control form-control-lg" 
+                                id="cantidad" 
+                                name="cantidad" 
+                                min="1"
+                                required
+                                placeholder="Ej: 10"
+                            >
+                        </div>
+                        
+                        <!-- Proveedor (opcional) -->
+                        <div class="mb-3">
+                            <label for="id_proveedor" class="form-label">
+                                Proveedor <small class="text-muted">(Opcional - para entradas)</small>
+                            </label>
+                            <select class="form-select" id="id_proveedor" name="id_proveedor">
+                                <option value="">Sin proveedor</option>
+                                {% for prov in proveedores %}
+                                <option value="{{ prov.id_proveedor }}">{{ prov.nombre_proveedor }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Número de Documento (opcional) -->
+                        <div class="mb-3">
+                            <label for="numero_documento" class="form-label">
+                                Número de Documento <small class="text-muted">(Opcional)</small>
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="numero_documento" 
+                                name="numero_documento"
+                                placeholder="Ej: FAC-001, ORD-123, etc."
+                            >
+                            <small class="text-muted">Factura, orden de compra, nota de envío, etc.</small>
+                        </div>
+                        
+                        <!-- Observaciones -->
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">
+                                Observaciones <small class="text-muted">(Opcional)</small>
+                            </label>
+                            <textarea 
+                                class="form-control" 
+                                id="observaciones" 
+                                name="observaciones" 
+                                rows="3"
+                                placeholder="Detalles adicionales del movimiento..."
+                            ></textarea>
+                        </div>
+                        
+                        <!-- Preview del resultado -->
+                        <div class="alert alert-secondary" id="preview" style="display: none;">
+                            <h6><i class="bi bi-calculator"></i> Previsualización:</h6>
+                            <div id="previewContent"></div>
+                        </div>
+                        
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('movimientos.listar') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Registrar Movimiento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Ayuda -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6><i class="bi bi-question-circle"></i> Tipos de Movimiento:</h6>
+                    <ul class="small mb-0">
+                        <li><strong>Entrada:</strong> Agregar productos al inventario (compras)</li>
+                        <li><strong>Salida:</strong> Retirar productos del inventario (ventas)</li>
+                        <li><strong>Ajuste Positivo:</strong> Corrección de inventario (suma)</li>
+                        <li><strong>Ajuste Negativo:</strong> Corrección de inventario (resta)</li>
+                        <li><strong>Devolución Entrada:</strong> Devolver a proveedor (resta)</li>
+                        <li><strong>Devolución Salida:</strong> Recibir de cliente (suma)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productoSelect = document.getElementById('id_producto');
+    const tipoSelect = document.getElementById('id_tipo_movimiento');
+    const cantidadInput = document.getElementById('cantidad');
+    const stockInfo = document.getElementById('stockInfo');
+    const stockActual = document.getElementById('stockActual');
+    const preview = document.getElementById('preview');
+    const previewContent = document.getElementById('previewContent');
+    
+    // Mostrar stock actual cuando se selecciona un producto
+    productoSelect.addEventListener('change', function() {
+        if (this.value) {
+            const selectedOption = this.options[this.selectedIndex];
+            const stock = selectedOption.getAttribute('data-stock');
+            stockActual.textContent = stock;
+            stockInfo.style.display = 'block';
+            actualizarPreview();
+        } else {
+            stockInfo.style.display = 'none';
+            preview.style.display = 'none';
+        }
+    });
+    
+    // Actualizar preview al cambiar valores
+    tipoSelect.addEventListener('change', actualizarPreview);
+    cantidadInput.addEventListener('input', actualizarPreview);
+    
+    function actualizarPreview() {
+        if (!productoSelect.value || !tipoSelect.value || !cantidadInput.value) {
+            preview.style.display = 'none';
+            return;
+        }
+        
+        const stockInicial = parseInt(stockActual.textContent);
+        const cantidad = parseInt(cantidadInput.value);
+        const tipoOption = tipoSelect.options[tipoSelect.selectedIndex];
+        const afecta = tipoOption.getAttribute('data-afecta');
+        
+        let stockFinal;
+        if (afecta === 'SUMA') {
+            stockFinal = stockInicial + cantidad;
+        } else if (afecta === 'RESTA') {
+            stockFinal = stockInicial - cantidad;
+        } else {
+            stockFinal = cantidad;
+        }
+        
+        let mensaje = `
+            <strong>Stock Inicial:</strong> ${stockInicial}<br>
+            <strong>Operación:</strong> ${tipoOption.text} (${cantidad})<br>
+            <strong>Stock Final:</strong> <span class="${stockFinal < 0 ? 'text-danger' : 'text-success'}">${stockFinal}</span>
+        `;
+        
+        if (stockFinal < 0) {
+            mensaje += '<br><span class="text-danger"><i class="bi bi-exclamation-triangle"></i> <strong>ADVERTENCIA:</strong> El stock resultante es negativo</span>';
+        }
+        
+        previewContent.innerHTML = mensaje;
+        preview.style.display = 'block';
+    }
+    
+    // Trigger inicial si hay producto preseleccionado
+    if (productoSelect.value) {
+        productoSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}

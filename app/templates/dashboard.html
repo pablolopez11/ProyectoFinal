@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">
+                <i class="bi bi-speedometer2"></i> Dashboard
+                <small class="text-muted">- {{ session.rol }}</small>
+            </h1>
+        </div>
+    </div>
+    
+    <!-- Tarjetas de Estadísticas -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Total Productos</h6>
+                            <h2 class="mb-0">{{ stats.total_productos or 0 }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-box display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Items en Inventario</h6>
+                            <h2 class="mb-0">{{ stats.total_items_inventario or 0 }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-stack display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Solo mostrar Valor Inventario si tiene permisos financieros -->
+        {% if puede_ver_finanzas %}
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Valor Inventario</h6>
+                            <h2 class="mb-0">Q{{ "%.2f"|format(stats.valor_total_inventario or 0) }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-currency-dollar display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Stock Bajo</h6>
+                            <h2 class="mb-0">{{ stats.productos_stock_bajo or 0 }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-exclamation-triangle display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-3">
+        <!-- Alertas de Stock -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Alertas de Stock
+                        {% if alertas_total > 0 %}
+                            <span class="badge bg-danger">{{ alertas_total }}</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if alertas %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Producto</th>
+                                        <th>Stock</th>
+                                        <th>Nivel</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alerta in alertas %}
+                                    <tr>
+                                        <td><code>{{ alerta.sku }}</code></td>
+                                        <td>{{ alerta.nombre_producto }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                {{ alerta.stock_actual }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if alerta.nivel_alerta == 'AGOTADO' %}
+                                                <span class="badge bg-danger">AGOTADO</span>
+                                            {% elif alerta.nivel_alerta == 'CRÍTICO' %}
+                                                <span class="badge bg-warning text-dark">CRÍTICO</span>
+                                            {% else %}
+                                                <span class="badge bg-info">BAJO</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if alertas_total > 5 %}
+                        <div class="text-center mt-2">
+                            <a href="{{ url_for('movimientos.alertas') }}" class="btn btn-sm btn-warning">
+                                Ver todas ({{ alertas_total }})
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center mb-0">
+                            <i class="bi bi-check-circle"></i> No hay alertas pendientes
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Movimientos Recientes -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history"></i> Movimientos Recientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if movimientos %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Producto</th>
+                                        <th>Tipo</th>
+                                        <th>Cant.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for mov in movimientos %}
+                                    <tr>
+                                        <td><small>{{ mov.fecha_movimiento.strftime('%d/%m %H:%M') }}</small></td>
+                                        <td><small>{{ mov.nombre_producto[:30] }}</small></td>
+                                        <td><small>{{ mov.nombre_tipo }}</small></td>
+                                        <td><span class="badge bg-info">{{ mov.cantidad }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-2">
+                            <a href="{{ url_for('movimientos.listar') }}" class="btn btn-sm btn-primary">
+                                Ver todos
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">No hay movimientos registrados</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Accesos Rápidos - Solo mostrar según permisos -->
+    <div class="row g-3 mt-3 mb-4">
+        <div class="col-12">
+            <h5><i class="bi bi-lightning"></i> Accesos Rápidos</h5>
+        </div>
+        
+        <!-- Botón Agregar Producto - Solo si tiene permiso -->
+        {% if permisos.puede_crear_productos %}
+        <div class="col-md-3">
+            <a href="{{ url_for('productos.crear') }}" class="btn btn-outline-primary w-100 py-3">
+                <i class="bi bi-plus-circle display-6"></i><br>
+                Agregar Producto
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Botón Registrar Movimiento - Solo si tiene permiso -->
+        {% if permisos.puede_registrar_movimientos %}
+        <div class="col-md-3">
+            <a href="{{ url_for('movimientos.registrar') }}" class="btn btn-outline-success w-100 py-3">
+                <i class="bi bi-arrow-down-circle display-6"></i><br>
+                Registrar Movimiento
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Botón Buscar Productos - Todos pueden buscar -->
+        <div class="col-md-3">
+            <a href="{{ url_for('productos.listar') }}" class="btn btn-outline-info w-100 py-3">
+                <i class="bi bi-search display-6"></i><br>
+                Buscar Productos
+            </a>
+        </div>
+        
+        <!-- Botón Ver Alertas - Todos pueden ver alertas -->
+        <div class="col-md-3">
+            <a href="{{ url_for('movimientos.alertas') }}" class="btn btn-outline-warning w-100 py-3">
+                <i class="bi bi-bell display-6"></i><br>
+                Ver Alertas
+            </a>
+        </div>
+    </div>
+    
+    <!-- Información del Usuario Actual -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Sesión actual:</strong> {{ session.nombre_completo }} 
+                | <strong>Rol:</strong> {{ session.rol }}
+                {% if permisos.es_administrador %}
+                    <span class="badge bg-danger">Administrador</span>
+                {% elif permisos.es_operador %}
+                    <span class="badge bg-primary">Operador de Bodega</span>
+                {% elif permisos.es_consulta %}
+                    <span class="badge bg-secondary">Usuario de Consulta</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

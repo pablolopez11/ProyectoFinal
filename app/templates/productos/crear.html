@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Producto - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Crear Nuevo Producto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('productos.crear') }}">
+                        <div class="row">
+                            <!-- SKU -->
+                            <div class="col-md-6 mb-3">
+                                <label for="sku" class="form-label">
+                                    SKU <span class="text-danger">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="sku" 
+                                    name="sku" 
+                                    required
+                                    placeholder="Ej: PROD-001"
+                                >
+                                <small class="text-muted">Código único del producto</small>
+                            </div>
+                            
+                            <!-- Código de Barras -->
+                            <div class="col-md-6 mb-3">
+                                <label for="codigo_barras" class="form-label">
+                                    Código de Barras
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="codigo_barras" 
+                                    name="codigo_barras"
+                                    placeholder="Ej: 7501234567890"
+                                >
+                            </div>
+                        </div>
+                        
+                        <!-- Nombre del Producto -->
+                        <div class="mb-3">
+                            <label for="nombre_producto" class="form-label">
+                                Nombre del Producto <span class="text-danger">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="nombre_producto" 
+                                name="nombre_producto" 
+                                required
+                                placeholder="Ej: Laptop Dell Inspiron 15"
+                            >
+                        </div>
+                        
+                        <!-- Descripción -->
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">
+                                Descripción
+                            </label>
+                            <textarea 
+                                class="form-control" 
+                                id="descripcion" 
+                                name="descripcion" 
+                                rows="3"
+                                placeholder="Descripción detallada del producto..."
+                            ></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Categoría -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_categoria" class="form-label">
+                                    Categoría
+                                </label>
+                                <select class="form-select" id="id_categoria" name="id_categoria">
+                                    <option value="">Seleccione una categoría</option>
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat.id_categoria }}">{{ cat.nombre_categoria }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Proveedor -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_proveedor" class="form-label">
+                                    Proveedor
+                                </label>
+                                <select class="form-select" id="id_proveedor" name="id_proveedor">
+                                    <option value="">Seleccione un proveedor</option>
+                                    {% for prov in proveedores %}
+                                    <option value="{{ prov.id_proveedor }}">{{ prov.nombre_proveedor }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Precio de Compra -->
+                            <div class="col-md-6 mb-3">
+                                <label for="precio_compra" class="form-label">
+                                    Precio de Compra (Q) <span class="text-danger">*</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="precio_compra" 
+                                    name="precio_compra" 
+                                    step="0.01" 
+                                    min="0"
+                                    required
+                                    value="0"
+                                >
+                            </div>
+                            
+                            <!-- Precio de Venta -->
+                            <div class="col-md-6 mb-3">
+                                <label for="precio_venta" class="form-label">
+                                    Precio de Venta (Q) <span class="text-danger">*</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="precio_venta" 
+                                    name="precio_venta" 
+                                    step="0.01" 
+                                    min="0"
+                                    required
+                                    value="0"
+                                >
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Stock Actual -->
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_actual" class="form-label">
+                                    Stock Inicial <span class="text-danger">*</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="stock_actual" 
+                                    name="stock_actual" 
+                                    min="0"
+                                    required
+                                    value="0"
+                                >
+                            </div>
+                            
+                            <!-- Stock Mínimo -->
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_minimo" class="form-label">
+                                    Stock Mínimo <span class="text-danger">*</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="stock_minimo" 
+                                    name="stock_minimo" 
+                                    min="0"
+                                    required
+                                    value="5"
+                                >
+                            </div>
+                            
+                            <!-- Stock Máximo -->
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_maximo" class="form-label">
+                                    Stock Máximo <span class="text-danger">*</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="stock_maximo" 
+                                    name="stock_maximo" 
+                                    min="0"
+                                    required
+                                    value="100"
+                                >
+                            </div>
+                        </div>
+                        
+                        <!-- Ubicación -->
+                        <div class="mb-3">
+                            <label for="ubicacion" class="form-label">
+                                Ubicación en Almacén
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="ubicacion" 
+                                name="ubicacion"
+                                placeholder="Ej: Pasillo 3, Estante A, Nivel 2"
+                            >
+                        </div>
+                        
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('productos.listar') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar Producto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

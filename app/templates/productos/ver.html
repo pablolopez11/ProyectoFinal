@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}{{ producto.nombre_producto }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Información del Producto -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box"></i> Detalles del Producto
+                    </h5>
+                    <div>
+                        {% if g.user.rol in ['Administrador', 'Gerente'] %}
+                        <a href="{{ url_for('productos.editar', id=producto.id_producto) }}" 
+                           class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('productos.listar') }}" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>SKU:</strong><br>
+                            <code class="fs-5">{{ producto.sku }}</code>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Código de Barras:</strong><br>
+                            {{ producto.codigo_barras or '-' }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Nombre:</strong><br>
+                        <h4>{{ producto.nombre_producto }}</h4>
+                    </div>
+                    
+                    {% if producto.descripcion %}
+                    <div class="mb-3">
+                        <strong>Descripción:</strong><br>
+                        <p class="text-muted">{{ producto.descripcion }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Categoría:</strong><br>
+                            {% if producto.nombre_categoria %}
+                                <span class="badge bg-secondary">{{ producto.nombre_categoria }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Proveedor:</strong><br>
+                            {{ producto.nombre_proveedor or '-' }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Precio de Compra:</strong><br>
+                            <span class="text-success fs-5">Q{{ "%.2f"|format(producto.precio_compra) }}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Precio de Venta:</strong><br>
+                            <span class="text-primary fs-5">Q{{ "%.2f"|format(producto.precio_venta) }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if producto.ubicacion %}
+                    <div class="mb-3">
+                        <strong>Ubicación:</strong><br>
+                        <i class="bi bi-geo-alt"></i> {{ producto.ubicacion }}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                Creado: {{ producto.fecha_creacion.strftime('%d/%m/%Y %H:%M') if producto.fecha_creacion else '-' }} |
+                                Modificado: {{ producto.fecha_modificacion.strftime('%d/%m/%Y %H:%M') if producto.fecha_modificacion else '-' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Historial de Movimientos -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Historial de Movimientos (Últimos 20)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if movimientos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Cantidad</th>
+                                    <th>Stock</th>
+                                    <th>Usuario</th>
+                                    <th>Documento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mov in movimientos %}
+                                <tr>
+                                    <td>{{ mov.fecha_movimiento.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ mov.tipo_movimiento }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ mov.cantidad }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ mov.stock_anterior }} → {{ mov.stock_nuevo }}
+                                        </small>
+                                    </td>
+                                    <td><small>{{ mov.usuario }}</small></td>
+                                    <td>
+                                        <small>{{ mov.numero_documento or '-' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">
+                        No hay movimientos registrados para este producto
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel Lateral - Stock -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header 
+                    {% if producto.stock_actual <= 0 %}
+                        bg-danger text-white
+                    {% elif producto.stock_actual <= producto.stock_minimo %}
+                        bg-warning
+                    {% else %}
+                        bg-success text-white
+                    {% endif %}
+                ">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box-seam"></i> Stock
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <h1 class="display-3 mb-3">{{ producto.stock_actual }}</h1>
+                    
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Mínimo</small><br>
+                                <strong>{{ producto.stock_minimo }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Máximo</small><br>
+                                <strong>{{ producto.stock_maximo }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Barra de progreso -->
+                    <div class="progress" style="height: 25px;">
+                        {% set porcentaje = (producto.stock_actual / producto.stock_maximo * 100) if producto.stock_maximo > 0 else 0 %}
+                        <div class="progress-bar 
+                            {% if producto.stock_actual <= 0 %}
+                                bg-danger
+                            {% elif producto.stock_actual <= producto.stock_minimo %}
+                                bg-warning
+                            {% else %}
+                                bg-success
+                            {% endif %}
+                        " 
+                        role="progressbar" 
+                        style="width: {{ porcentaje }}%"
+                        aria-valuenow="{{ porcentaje }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                            {{ "%.0f"|format(porcentaje) }}%
+                        </div>
+                    </div>
+                    
+                    {% if producto.stock_actual <= 0 %}
+                        <div class="alert alert-danger mt-3 mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>AGOTADO</strong>
+                        </div>
+                    {% elif producto.stock_actual <= producto.stock_minimo %}
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>STOCK BAJO</strong>
+                        </div>
+                    {% endif %}
+                    
+                    {% if g.user.rol in ['Administrador', 'Gerente', 'Almacenista'] %}
+                    <a href="{{ url_for('movimientos.registrar') }}?producto={{ producto.id_producto }}" 
+                       class="btn btn-primary w-100 mt-3">
+                        <i class="bi bi-arrow-down-up"></i> Registrar Movimiento
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Valor del Inventario -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-currency-dollar"></i> Valor en Inventario
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">Costo Total:</small><br>
+                        <strong class="text-success fs-5">
+                            Q{{ "%.2f"|format(producto.stock_actual * producto.precio_compra) }}
+                        </strong>
+                    </div>
+                    <div>
+                        <small class="text-muted">Valor de Venta:</small><br>
+                        <strong class="text-primary fs-5">
+                            Q{{ "%.2f"|format(producto.stock_actual * producto.precio_venta) }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
